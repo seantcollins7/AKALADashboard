@@ -6,8 +6,8 @@ from typing import Optional
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from akala-db.env
+load_dotenv("akala-db.env")
 
 
 class AWSConfig(BaseModel):

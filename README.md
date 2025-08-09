@@ -32,15 +32,15 @@ pip install -r requirements.txt
 
 4. Set up environment variables:
 ```bash
-cp env_example.txt .env
-# Edit .env with your actual configuration values
+cp env_example.txt akala-db.env
+# Edit akala-db.env with your actual configuration values
 ```
 
 ## Configuration
 
 ### Environment Variables
 
-Create a `.env` file with the following variables:
+Create a `akala-db.env` file with the following variables:
 
 ```bash
 # AWS Configuration
