@@ -1,5 +1,5 @@
 """
-Core dashboard generator that orchestrates data retrieval and Google Sheets/Looker Studio integration.
+Core dashboard generator that orchestrates data retrieval and Power BI integration.
 """
 import logging
 from typing import Dict, Any, List, Optional, Union
@@ -85,19 +85,75 @@ class DashboardGenerator:
             logger.error(f"Failed to create Google Spreadsheet: {e}")
             raise
     
-    def update_user_data(self, spreadsheet_id: str, user_filters: Optional[Dict[str, Any]] = None, 
-                        clear_existing: bool = True) -> None:
+    def create_user_dashboard_dataset(self, dataset_name: Optional[str] = None) -> str:
         """
-        Update user data in Google Sheets.
+        Create a Power BI dataset for user dashboard data.
         
         Args:
-            spreadsheet_id: Google Spreadsheet ID
+            dataset_name: Custom dataset name (auto-generated if not provided)
+            
+        Returns:
+            Created dataset ID
+        """
+        if not dataset_name:
+            dataset_name = f"UserDashboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        # Define schema for user data
+        user_columns = [
+            {"name": "user_id", "dataType": "String"},
+            {"name": "username", "dataType": "String"},
+            {"name": "email", "dataType": "String"},
+            {"name": "created_at", "dataType": "DateTime"},
+            {"name": "last_login", "dataType": "DateTime"},
+            {"name": "user_type", "dataType": "String"},
+            {"name": "status", "dataType": "String"},
+            {"name": "department", "dataType": "String"},
+            {"name": "role", "dataType": "String"}
+        ]
+        
+        # Define schema for analytics data
+        analytics_columns = [
+            {"name": "date", "dataType": "DateTime"},
+            {"name": "metric_type", "dataType": "String"},
+            {"name": "metric_value", "dataType": "Int64"},
+            {"name": "category", "dataType": "String"}
+        ]
+        
+        # Create dataset with multiple tables
+        dataset_definition = {
+            "name": dataset_name,
+            "tables": [
+                {
+                    "name": "Users",
+                    "columns": user_columns
+                },
+                {
+                    "name": "Analytics",
+                    "columns": analytics_columns
+                }
+            ]
+        }
+        
+        try:
+            result = self.powerbi_client.create_dataset(dataset_definition)
+            dataset_id = result["id"]
+            self._datasets_cache[dataset_name] = dataset_id
+            logger.info(f"Created Power BI dataset '{dataset_name}' with ID: {dataset_id}")
+            return dataset_id
+        except Exception as e:
+            logger.error(f"Failed to create Power BI dataset: {e}")
+            raise
+    
+    def update_user_data(self, dataset_id: str, user_filters: Optional[Dict[str, Any]] = None, 
+                        clear_existing: bool = True) -> None:
+        """
+        Update user data in Power BI dataset.
+        
+        Args:
+            dataset_id: Power BI dataset ID
             user_filters: Filters to apply when retrieving user data
             clear_existing: Whether to clear existing data before adding new data
         """
-        if not self.google_client:
-            raise Exception("Google Sheets client not configured")
-            
         try:
             # Retrieve user data from database
             logger.info("Retrieving user data from database...")
@@ -107,36 +163,33 @@ class DashboardGenerator:
                 logger.warning("No user data found with provided filters")
                 return
             
-            # Prepare data for Google Sheets/Looker Studio
-            user_data_clean = prepare_dataframe_for_looker_studio(user_data)
+            # Prepare data for Power BI
+            user_data_clean = self._prepare_data_for_powerbi(user_data)
             
-            # Upload data to Google Sheets
-            self.google_client.write_dataframe_to_sheet(
-                spreadsheet_id, 
-                "Users", 
-                user_data_clean, 
-                clear_existing=clear_existing
-            )
-            logger.info(f"Successfully updated {len(user_data_clean)} user records in Google Sheets")
+            # Clear existing data if requested
+            if clear_existing:
+                self.powerbi_client.delete_dataset_rows(dataset_id, "Users")
+                logger.info("Cleared existing user data from Power BI dataset")
+            
+            # Upload data to Power BI
+            self.powerbi_client.push_data_to_dataset(dataset_id, "Users", user_data_clean)
+            logger.info(f"Successfully updated {len(user_data_clean)} user records in Power BI")
             
         except Exception as e:
             logger.error(f"Failed to update user data: {e}")
             raise
     
-    def update_analytics_data(self, spreadsheet_id: str, metrics: List[str], 
+    def update_analytics_data(self, dataset_id: str, metrics: List[str], 
                             time_period: Optional[str] = None, clear_existing: bool = True) -> None:
         """
-        Update analytics data in Google Sheets.
+        Update analytics data in Power BI dataset.
         
         Args:
-            spreadsheet_id: Google Spreadsheet ID
+            dataset_id: Power BI dataset ID
             metrics: List of metric types to retrieve
             time_period: Time period for analytics data
             clear_existing: Whether to clear existing data before adding new data
         """
-        if not self.google_client:
-            raise Exception("Google Sheets client not configured")
-            
         try:
             all_analytics_data = []
             
@@ -170,75 +223,25 @@ class DashboardGenerator:
             
             # Combine all analytics data
             combined_data = pd.concat(all_analytics_data, ignore_index=True)
-            analytics_data_clean = prepare_dataframe_for_looker_studio(combined_data)
+            analytics_data_clean = self._prepare_data_for_powerbi(combined_data)
             
-            # Upload data to Google Sheets
-            self.google_client.write_dataframe_to_sheet(
-                spreadsheet_id, 
-                "Analytics", 
-                analytics_data_clean, 
-                clear_existing=clear_existing
-            )
-            logger.info(f"Successfully updated {len(analytics_data_clean)} analytics records in Google Sheets")
+            # Clear existing data if requested
+            if clear_existing:
+                self.powerbi_client.delete_dataset_rows(dataset_id, "Analytics")
+                logger.info("Cleared existing analytics data from Power BI dataset")
+            
+            # Upload data to Power BI
+            self.powerbi_client.push_data_to_dataset(dataset_id, "Analytics", analytics_data_clean)
+            logger.info(f"Successfully updated {len(analytics_data_clean)} analytics records in Power BI")
             
         except Exception as e:
             logger.error(f"Failed to update analytics data: {e}")
             raise
     
-    def create_summary_sheet(self, spreadsheet_id: str) -> None:
-        """
-        Create a summary sheet with key metrics.
-        
-        Args:
-            spreadsheet_id: Google Spreadsheet ID
-        """
-        if not self.google_client:
-            raise Exception("Google Sheets client not configured")
-            
-        try:
-            # Get summary data from database
-            user_data = self.db_connection.get_user_data()
-            
-            # Calculate summary metrics
-            summary_data = {
-                'Metric': [
-                    'Total Users',
-                    'Active Users',
-                    'New Users (Last 30 Days)',
-                    'Premium Users',
-                    'Most Common Department',
-                    'Last Updated'
-                ],
-                'Value': [
-                    len(user_data),
-                    len(user_data[user_data['status'] == 'active']) if 'status' in user_data.columns else 'N/A',
-                    len(user_data[user_data['created_at'] >= (datetime.now() - timedelta(days=30))]) if 'created_at' in user_data.columns else 'N/A',
-                    len(user_data[user_data['user_type'] == 'premium']) if 'user_type' in user_data.columns else 'N/A',
-                    user_data['department'].mode().iloc[0] if 'department' in user_data.columns and not user_data['department'].empty else 'N/A',
-                    datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                ]
-            }
-            
-            summary_df = pd.DataFrame(summary_data)
-            
-            # Upload to Google Sheets
-            self.google_client.write_dataframe_to_sheet(
-                spreadsheet_id, 
-                "Summary", 
-                summary_df, 
-                clear_existing=True
-            )
-            logger.info("Successfully created summary sheet")
-            
-        except Exception as e:
-            logger.error(f"Failed to create summary sheet: {e}")
-            raise
-    
     def generate_complete_dashboard(self, dashboard_name: Optional[str] = None,
                                   user_filters: Optional[Dict[str, Any]] = None,
                                   analytics_metrics: Optional[List[str]] = None,
-                                  analytics_time_period: Optional[str] = None,
-                                  make_public: bool = False) -> Dict[str, str]:
+                                  analytics_time_period: Optional[str] = None) -> str:
         """
         Generate a complete dashboard with user and analytics data.
         
@@ -247,10 +250,9 @@ class DashboardGenerator:
             user_filters: Filters for user data
             analytics_metrics: List of analytics metrics to include
             analytics_time_period: Time period for analytics
-            make_public: Whether to make the spreadsheet publicly viewable
             
         Returns:
-            Dictionary with spreadsheet_id and url
+            Power BI dataset ID for the created dashboard
         """
         # Set defaults
         if analytics_metrics is None:
@@ -260,50 +262,37 @@ class DashboardGenerator:
             analytics_time_period = "30 days"
         
         try:
-            # Create spreadsheet
-            logger.info("Creating Google Spreadsheet...")
-            spreadsheet_id = self.create_dashboard_spreadsheet(dashboard_name)
+            # Create dataset
+            logger.info("Creating Power BI dataset...")
+            dataset_id = self.create_user_dashboard_dataset(dashboard_name)
             
             # Update user data
             logger.info("Updating user data...")
-            self.update_user_data(spreadsheet_id, user_filters)
+            self.update_user_data(dataset_id, user_filters)
             
             # Update analytics data
             logger.info("Updating analytics data...")
-            self.update_analytics_data(spreadsheet_id, analytics_metrics, analytics_time_period)
+            self.update_analytics_data(dataset_id, analytics_metrics, analytics_time_period)
             
-            # Create summary sheet
-            logger.info("Creating summary sheet...")
-            self.create_summary_sheet(spreadsheet_id)
+            # Trigger dataset refresh
+            logger.info("Triggering dataset refresh...")
+            self.powerbi_client.refresh_dataset(dataset_id)
             
-            # Get spreadsheet URL
-            spreadsheet_url = self.google_client.get_spreadsheet_url(spreadsheet_id)
-            
-            # Make public if requested
-            if make_public:
-                self.google_client.make_public_viewable(spreadsheet_id)
-                logger.info("Made spreadsheet publicly viewable")
-            
-            logger.info(f"Dashboard generation completed successfully. Spreadsheet ID: {spreadsheet_id}")
-            
-            return {
-                "spreadsheet_id": spreadsheet_id,
-                "url": spreadsheet_url,
-                "looker_studio_url": f"https://lookerstudio.google.com/datasources/create?connectorId=AKEAFjCMCpf"
-            }
+            logger.info(f"Dashboard generation completed successfully. Dataset ID: {dataset_id}")
+            return dataset_id
             
         except Exception as e:
             logger.error(f"Dashboard generation failed: {e}")
             raise
     
-    def refresh_dashboard(self, spreadsheet_id: str, update_user_data: bool = True,
+    def refresh_dashboard(self, dataset_id: str, update_user_data: bool = True,
                          update_analytics: bool = True, user_filters: Optional[Dict[str, Any]] = None,
                          analytics_metrics: Optional[List[str]] = None) -> None:
         """
         Refresh an existing dashboard with latest data.
         
         Args:
-            spreadsheet_id: Existing spreadsheet ID
+            dataset_id: Existing dataset ID
             update_user_data: Whether to update user data
             update_analytics: Whether to update analytics data
             user_filters: Filters for user data
@@ -312,18 +301,16 @@ class DashboardGenerator:
         try:
             if update_user_data:
                 logger.info("Refreshing user data...")
-                self.update_user_data(spreadsheet_id, user_filters)
+                self.update_user_data(dataset_id, user_filters)
             
             if update_analytics:
                 if analytics_metrics is None:
                     analytics_metrics = ["user_activity", "user_registrations"]
                 logger.info("Refreshing analytics data...")
-                self.update_analytics_data(spreadsheet_id, analytics_metrics)
+                self.update_analytics_data(dataset_id, analytics_metrics)
             
-            # Update summary
-            logger.info("Refreshing summary sheet...")
-            self.create_summary_sheet(spreadsheet_id)
-            
+            # Trigger dataset refresh
+            self.powerbi_client.refresh_dataset(dataset_id)
             logger.info("Dashboard refresh completed successfully")
             
         except Exception as e:
@@ -332,41 +319,26 @@ class DashboardGenerator:
     
     def get_dashboard_info(self) -> Dict[str, Any]:
         """
-        Get information about created spreadsheets.
+        Get information about available dashboards and datasets.
         
         Returns:
             Dictionary with dashboard information
         """
         try:
+            workspaces = self.powerbi_client.get_workspaces()
+            datasets = self.powerbi_client.get_datasets()
+            reports = self.powerbi_client.get_reports()
+            dashboards = self.powerbi_client.get_dashboards()
+            
             return {
-                "cached_spreadsheets": self._spreadsheets_cache,
-                "google_configured": self.google_client is not None,
-                "instructions": {
-                    "looker_studio": "1. Go to https://lookerstudio.google.com/\n2. Create New -> Data Source\n3. Select Google Sheets\n4. Choose your dashboard spreadsheet\n5. Create reports using the data",
-                    "sharing": "Use the spreadsheet URL to share with team members or make it public"
-                }
+                "workspaces": workspaces,
+                "datasets": datasets,
+                "reports": reports,
+                "dashboards": dashboards,
+                "cached_datasets": self._datasets_cache
             }
         except Exception as e:
             logger.error(f"Failed to get dashboard info: {e}")
-            raise
-    
-    def share_dashboard(self, spreadsheet_id: str, email: str, role: str = 'reader') -> None:
-        """
-        Share dashboard with an email address.
-        
-        Args:
-            spreadsheet_id: Spreadsheet ID
-            email: Email address to share with
-            role: Permission role ('reader', 'writer', 'commenter')
-        """
-        if not self.google_client:
-            raise Exception("Google Sheets client not configured")
-            
-        try:
-            self.google_client.share_spreadsheet(spreadsheet_id, email, role)
-            logger.info(f"Shared dashboard with {email}")
-        except Exception as e:
-            logger.error(f"Failed to share dashboard: {e}")
             raise
     
     def close(self):

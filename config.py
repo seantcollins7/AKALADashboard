@@ -50,41 +50,49 @@ class DatabaseConfig(BaseModel):
         )
 
 
-class PowerBIConfig(BaseModel):
-    """Power BI configuration settings."""
-    tenant_id: str
-    client_id: str
-    client_secret: str
-    workspace_id: Optional[str] = Field(default=None)
-    base_url: str = Field(default="https://api.powerbi.com/v1.0/myorg")
+class GoogleConfig(BaseModel):
+    """Google Looker Studio configuration settings."""
+    credentials_file: Optional[str] = Field(default=None)
+    service_account_key: Optional[str] = Field(default=None)
+    spreadsheet_id: Optional[str] = Field(default=None)
+    folder_id: Optional[str] = Field(default=None)
     
     @classmethod
-    def from_env(cls) -> "PowerBIConfig":
-        """Load Power BI config from environment variables."""
+    def from_env(cls) -> "GoogleConfig":
+        """Load Google config from environment variables."""
         return cls(
-            tenant_id=os.getenv("POWERBI_TENANT_ID", ""),
-            client_id=os.getenv("POWERBI_CLIENT_ID", ""),
-            client_secret=os.getenv("POWERBI_CLIENT_SECRET", ""),
-            workspace_id=os.getenv("POWERBI_WORKSPACE_ID"),
-            base_url=os.getenv("POWERBI_BASE_URL", "https://api.powerbi.com/v1.0/myorg")
+            credentials_file=os.getenv("GOOGLE_CREDENTIALS_FILE"),
+            service_account_key=os.getenv("GOOGLE_SERVICE_ACCOUNT_KEY"),
+            spreadsheet_id=os.getenv("GOOGLE_SPREADSHEET_ID"),
+            folder_id=os.getenv("GOOGLE_DRIVE_FOLDER_ID")
         )
 
 
 class DashboardConfig(BaseModel):
     """Dashboard generator configuration."""
-    aws: AWSConfig
+    aws: Optional[AWSConfig] = Field(default=None)
     database: DatabaseConfig
-    powerbi: PowerBIConfig
+    google: Optional[GoogleConfig] = Field(default=None)
     log_level: str = Field(default="INFO")
     cache_timeout: int = Field(default=3600)  # seconds
     
     @classmethod
     def from_env(cls) -> "DashboardConfig":
         """Load complete configuration from environment variables."""
+        # Only load AWS config if credentials are provided
+        aws_config = None
+        if os.getenv("AWS_ACCESS_KEY_ID") or os.getenv("AWS_REGION"):
+            aws_config = AWSConfig.from_env()
+        
+        # Only load Google config if credentials are provided
+        google_config = None
+        if (os.getenv("GOOGLE_CREDENTIALS_FILE") or os.getenv("GOOGLE_SERVICE_ACCOUNT_KEY")):
+            google_config = GoogleConfig.from_env()
+        
         return cls(
-            aws=AWSConfig.from_env(),
+            aws=aws_config,
             database=DatabaseConfig.from_env(),
-            powerbi=PowerBIConfig.from_env(),
+            google=google_config,
             log_level=os.getenv("LOG_LEVEL", "INFO"),
             cache_timeout=int(os.getenv("CACHE_TIMEOUT", "3600"))
         )

@@ -22,13 +22,15 @@ def main():
                        help="Logging level")
     parser.add_argument("--log-file", help="Log file path")
     parser.add_argument("--test-connections", action="store_true",
-                       help="Test database and Power BI connections")
+                       help="Test database and Google Sheets connections")
     parser.add_argument("--dashboard-name", help="Custom dashboard name")
     parser.add_argument("--user-type", help="Filter users by type")
     parser.add_argument("--department", help="Filter users by department")
     parser.add_argument("--analytics-period", default="30 days",
                        help="Analytics time period (e.g., '30 days', '7 days', '1 year')")
-    parser.add_argument("--refresh-dataset", help="Refresh existing dataset by ID")
+    parser.add_argument("--refresh-spreadsheet", help="Refresh existing spreadsheet by ID")
+    parser.add_argument("--make-public", action="store_true", help="Make spreadsheet publicly viewable")
+    parser.add_argument("--share-with", help="Email address to share dashboard with")
     
     args = parser.parse_args()
     
@@ -63,9 +65,9 @@ def main():
             logger.info("All connection tests passed")
             return 0
         
-        # Handle dataset refresh
-        if args.refresh_dataset:
-            logger.info(f"Refreshing dataset: {args.refresh_dataset}")
+        # Handle spreadsheet refresh
+        if args.refresh_spreadsheet:
+            logger.info(f"Refreshing spreadsheet: {args.refresh_spreadsheet}")
             
             # Build user filters
             user_filters = {}
@@ -75,11 +77,11 @@ def main():
                 user_filters["department"] = args.department
             
             generator.refresh_dashboard(
-                args.refresh_dataset,
+                args.refresh_spreadsheet,
                 user_filters=user_filters if user_filters else None
             )
             
-            print(f"\\nDataset {args.refresh_dataset} refreshed successfully!")
+            print(f"\\nSpreadsheet {args.refresh_spreadsheet} refreshed successfully!")
             return 0
         
         # Generate new dashboard
@@ -93,24 +95,39 @@ def main():
             user_filters["department"] = args.department
         
         # Generate dashboard
-        dataset_id = generator.generate_complete_dashboard(
+        dashboard_result = generator.generate_complete_dashboard(
             dashboard_name=args.dashboard_name,
             user_filters=user_filters if user_filters else None,
-            analytics_time_period=args.analytics_period
+            analytics_time_period=args.analytics_period,
+            make_public=args.make_public
         )
         
+        spreadsheet_id = dashboard_result["spreadsheet_id"]
+        spreadsheet_url = dashboard_result["url"]
+        
         print(f"\\nDashboard generated successfully!")
-        print(f"Dataset ID: {dataset_id}")
-        print("\\nYou can now create reports and dashboards in Power BI using this dataset.")
+        print(f"Spreadsheet ID: {spreadsheet_id}")
+        print(f"Spreadsheet URL: {spreadsheet_url}")
+        
+        # Share if requested
+        if args.share_with:
+            generator.share_dashboard(spreadsheet_id, args.share_with)
+            print(f"Shared with: {args.share_with}")
+        
+        print("\\nNext steps:")
+        print("1. Open the spreadsheet URL above")
+        print("2. Go to https://lookerstudio.google.com/")
+        print("3. Create New -> Data Source -> Google Sheets")
+        print("4. Select your dashboard spreadsheet")
+        print("5. Create beautiful reports and dashboards!")
         
         # Show dashboard info
         logger.info("Retrieving dashboard information...")
         dashboard_info = generator.get_dashboard_info()
         
-        print(f"\\nPower BI Workspace Info:")
-        print(f"Available datasets: {len(dashboard_info['datasets'])}")
-        print(f"Available reports: {len(dashboard_info['reports'])}")
-        print(f"Available dashboards: {len(dashboard_info['dashboards'])}")
+        print(f"\\nGoogle Integration Status:")
+        print(f"Google Sheets configured: {dashboard_info['google_configured']}")
+        print(f"Created spreadsheets: {len(dashboard_info['cached_spreadsheets'])}")
         
         return 0
         

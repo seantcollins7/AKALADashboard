@@ -1,14 +1,24 @@
 # AKALA Dashboard Generator
 
-A Python application that generates Power BI dashboards using user data from AWS databases for backend company analytics.
+A Python application that generates **free and secure** dashboards using Google Sheets and Looker Studio integration with AWS database data for backend company analytics.
+
+## 🎯 Why Google Looker Studio?
+
+- **✅ Completely Free** - No licensing costs unlike Power BI
+- **✅ More Secure** - You control your data in Google Sheets
+- **✅ Easy Sharing** - Simple link sharing with granular permissions
+- **✅ No Vendor Lock-in** - Your data stays in standard Google Sheets format
+- **✅ Real-time Updates** - Automatic refresh when spreadsheet data changes
 
 ## Features
 
 - **AWS Database Integration**: Connect to PostgreSQL, MySQL, or SQL Server databases hosted on AWS
-- **Power BI Integration**: Automatically create datasets and push data to Power BI
+- **Google Sheets Export**: Automatically export data to Google Sheets
+- **Looker Studio Ready**: Data formatted perfectly for Looker Studio dashboards
 - **User Analytics**: Generate comprehensive user analytics and activity reports
 - **Configurable Filters**: Filter data by user type, department, date ranges, and more
 - **Automated Refresh**: Update existing dashboards with latest data
+- **Secure Sharing**: Control access with Google's permission system
 - **Error Handling**: Robust error handling and logging for production use
 
 ## Installation
@@ -27,7 +37,7 @@ source venv/bin/activate  # On Windows: venv\\Scripts\\activate
 
 3. Install dependencies:
 ```bash
-pip install -r requirements.txt
+pip install -r requirements_basic.txt
 ```
 
 4. Set up environment variables:
@@ -43,36 +53,45 @@ cp env_example.txt akala-db.env
 Create a `akala-db.env` file with the following variables:
 
 ```bash
-# AWS Configuration
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-
-# Database Configuration
-DB_HOST=your_rds_endpoint.amazonaws.com
+# Database Configuration (REQUIRED)
+DB_HOST=your_database_endpoint
 DB_PORT=5432
 DB_NAME=your_database_name
 DB_USERNAME=your_db_username
 DB_PASSWORD=your_db_password
 DB_ENGINE=postgresql  # or mysql, mssql
 
-# Power BI Configuration
-POWERBI_TENANT_ID=your_azure_tenant_id
-POWERBI_CLIENT_ID=your_powerbi_app_client_id
-POWERBI_CLIENT_SECRET=your_powerbi_app_client_secret
-POWERBI_WORKSPACE_ID=your_powerbi_workspace_id
+# Google Looker Studio Configuration (OPTIONAL - add when ready)
+# GOOGLE_CREDENTIALS_FILE=path/to/service-account.json
+# GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"..."}
+# GOOGLE_DRIVE_FOLDER_ID=your_google_drive_folder_id
+
+# Application Configuration
+LOG_LEVEL=INFO
+CACHE_TIMEOUT=3600
 ```
 
-### Power BI App Registration
+### Google Service Account Setup
 
-1. Go to Azure Portal → App registrations
-2. Create a new app registration
-3. Add Power BI Service API permissions:
-   - `Dataset.ReadWrite.All`
-   - `Report.ReadWrite.All`
-   - `Dashboard.ReadWrite.All`
-4. Generate a client secret
-5. Add the app to your Power BI workspace as an Admin
+To use Google Sheets integration:
+
+1. **Create a Google Cloud Project**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing one
+
+2. **Enable APIs**:
+   - Enable Google Sheets API
+   - Enable Google Drive API
+
+3. **Create Service Account**:
+   - Go to IAM & Admin → Service Accounts
+   - Create a new service account
+   - Download the JSON key file
+   - Set `GOOGLE_CREDENTIALS_FILE` to the path of this file
+
+4. **Share Access**:
+   - The service account email will need access to create files in your Google Drive
+   - Optionally create a dedicated folder and share it with the service account
 
 ## Database Schema Requirements
 
@@ -109,24 +128,34 @@ CREATE TABLE user_activity (
 
 ### Command Line Interface
 
-1. **Test connections**:
+1. **Test database connection**:
 ```bash
-python main.py --test-connections
+python3 test_database.py
 ```
 
-2. **Generate a new dashboard**:
+2. **Test all connections** (including Google if configured):
 ```bash
-python main.py --dashboard-name "Monthly User Report"
+python3 main.py --test-connections
 ```
 
-3. **Generate dashboard with filters**:
+3. **Generate a new dashboard**:
 ```bash
-python main.py --user-type "premium" --department "sales" --analytics-period "7 days"
+python3 main.py --dashboard-name "Monthly User Report"
 ```
 
-4. **Refresh existing dashboard**:
+4. **Generate dashboard with filters**:
 ```bash
-python main.py --refresh-dataset "your-dataset-id"
+python3 main.py --user-type "premium" --department "sales" --analytics-period "7 days"
+```
+
+5. **Make dashboard public and share**:
+```bash
+python3 main.py --dashboard-name "Public Analytics" --make-public --share-with "colleague@company.com"
+```
+
+6. **Refresh existing dashboard**:
+```bash
+python3 main.py --refresh-spreadsheet "your-spreadsheet-id"
 ```
 
 ### Programmatic Usage
@@ -146,17 +175,52 @@ connection_status = generator.test_connections()
 print(connection_status)
 
 # Generate dashboard
-dataset_id = generator.generate_complete_dashboard(
+dashboard_result = generator.generate_complete_dashboard(
     dashboard_name="Custom Dashboard",
     user_filters={"user_type": "premium"},
-    analytics_time_period="30 days"
+    analytics_time_period="30 days",
+    make_public=True
 )
 
-print(f"Dashboard created with dataset ID: {dataset_id}")
+print(f"Spreadsheet URL: {dashboard_result['url']}")
 
 # Cleanup
 generator.close()
 ```
+
+## Creating Looker Studio Dashboards
+
+Once your data is in Google Sheets:
+
+1. **Open Looker Studio**: Go to [https://lookerstudio.google.com/](https://lookerstudio.google.com/)
+
+2. **Create Data Source**:
+   - Click "Create" → "Data Source"
+   - Select "Google Sheets"
+   - Choose your dashboard spreadsheet
+   - Select the sheet (Users, Analytics, or Summary)
+
+3. **Create Report**:
+   - Click "Create Report"
+   - Drag and drop fields to create visualizations
+   - Add filters, charts, tables, and metrics
+
+4. **Recommended Visualizations**:
+
+   **For Users Sheet**:
+   - **Bar Chart**: Users by department
+   - **Pie Chart**: User types distribution
+   - **Table**: Detailed user list with filters
+   - **Scorecard**: Total active users
+
+   **For Analytics Sheet**:
+   - **Time Series**: User activity over time
+   - **Line Chart**: Registration trends
+   - **Comparison Chart**: Month-over-month growth
+
+   **For Summary Sheet**:
+   - **Scorecards**: Key metrics (Total Users, Active Users, etc.)
+   - **Text**: Last updated timestamp
 
 ## Available Analytics Metrics
 
@@ -172,29 +236,29 @@ The system generates the following analytics automatically:
    - Registration trends by user type
    - Department-wise growth
 
-3. **User Distribution**:
-   - Users by type (premium, basic, etc.)
-   - Users by department
-   - User status distribution
+3. **Summary Metrics**:
+   - Total users count
+   - Active users count
+   - New users (last 30 days)
+   - Most common department
 
-## Power BI Integration
+## Security & Privacy
 
-Once data is pushed to Power BI, you can:
+### Why This Is More Secure Than Power BI
 
-1. **Create Reports**: Use the generated datasets to build custom reports
-2. **Build Dashboards**: Pin report visuals to create executive dashboards
-3. **Set Refresh Schedules**: Configure automatic data refresh in Power BI
-4. **Share with Teams**: Distribute dashboards to stakeholders
+1. **Data Ownership**: Your data stays in your Google account, not Microsoft's cloud
+2. **Access Control**: Granular Google permissions (view, edit, comment)
+3. **No Vendor Lock-in**: Standard Google Sheets format, easily exportable
+4. **Audit Trail**: Google Drive activity logs
+5. **Cost Control**: Completely free, no surprise licensing fees
 
-### Sample Power BI Visualizations
+### Best Practices
 
-The generated datasets work well with these visualizations:
-
-- **Line Charts**: User activity trends over time
-- **Bar Charts**: User distribution by department/type
-- **Cards**: Key metrics (total users, active users, etc.)
-- **Tables**: Detailed user listings with filters
-- **Maps**: Geographic user distribution (if location data available)
+- Use a dedicated Google account for company dashboards
+- Create a shared folder structure for different departments
+- Regularly review sharing permissions
+- Set up automated backups if needed
+- Use service accounts for automated processes
 
 ## Logging
 
@@ -206,16 +270,16 @@ The application includes comprehensive logging:
 
 Enable file logging:
 ```bash
-python main.py --log-file "logs/dashboard.log" --log-level DEBUG
+python3 main.py --log-file "logs/dashboard.log" --log-level DEBUG
 ```
 
 ## Error Handling
 
 The application handles common scenarios:
 
-- **Database Connection Issues**: Automatic retry with exponential backoff
-- **Power BI API Errors**: Detailed error messages and recovery suggestions
-- **Data Type Mismatches**: Automatic data type conversion for Power BI compatibility
+- **Database Connection Issues**: Automatic retry with clear error messages
+- **Google API Errors**: Detailed error messages and recovery suggestions
+- **Data Type Mismatches**: Automatic data type conversion for Google Sheets compatibility
 - **Network Timeouts**: Configurable timeout settings
 - **Authentication Failures**: Clear error messages for credential issues
 
@@ -224,25 +288,25 @@ The application handles common scenarios:
 ### Common Issues
 
 1. **Database Connection Failed**:
-   - Check your RDS security group allows connections
-   - Verify database credentials and endpoint
-   - Ensure your IP is whitelisted
+   - Check your database credentials in `akala-db.env`
+   - Verify network connectivity
+   - Ensure database server is running
 
-2. **Power BI Authentication Failed**:
-   - Verify Azure app registration settings
-   - Check client ID and secret
-   - Ensure API permissions are granted and admin consented
+2. **Google Authentication Failed**:
+   - Verify service account key file exists
+   - Check API permissions are enabled
+   - Ensure service account has access to create files
 
 3. **Data Upload Failed**:
-   - Check dataset schema matches your data
-   - Verify Power BI workspace permissions
-   - Review data types and null handling
+   - Check Google API quotas
+   - Verify spreadsheet permissions
+   - Review data types and formatting
 
 ### Debug Mode
 
 Run with debug logging for detailed troubleshooting:
 ```bash
-python main.py --log-level DEBUG --test-connections
+python3 main.py --log-level DEBUG --test-connections
 ```
 
 ## Development
@@ -250,21 +314,25 @@ python main.py --log-level DEBUG --test-connections
 ### Project Structure
 ```
 AKALADashboard/
-├── config.py              # Configuration management
-├── main.py                 # CLI entry point
-├── requirements.txt        # Python dependencies
-├── database/              # Database connection modules
+├── config.py                    # Configuration management
+├── main.py                      # CLI entry point
+├── test_database.py            # Database connection tester
+├── requirements_basic.txt       # Python dependencies
+├── database/                   # Database connection modules
 │   ├── __init__.py
 │   └── connection.py
-├── powerbi/               # Power BI integration
+├── google_integration/         # Google Sheets/Looker Studio integration
 │   ├── __init__.py
-│   └── client.py
-├── dashboard/             # Core dashboard logic
+│   └── sheets_client.py
+├── dashboard/                  # Core dashboard logic
 │   ├── __init__.py
 │   └── generator.py
-└── utils/                 # Utility modules
-    ├── __init__.py
-    └── logging.py
+├── utils/                      # Utility modules
+│   ├── __init__.py
+│   └── logging.py
+└── examples/                   # Usage examples
+    ├── basic_usage.py
+    └── advanced_usage.py
 ```
 
 ### Extending the Application
@@ -272,15 +340,17 @@ AKALADashboard/
 1. **Add New Analytics**: Modify `get_analytics_data()` in `database/connection.py`
 2. **Custom Filters**: Extend `get_user_data()` with additional filter parameters
 3. **New Data Sources**: Add new database engines or connection types
-4. **Enhanced Power BI Features**: Extend `PowerBIClient` with additional API endpoints
+4. **Enhanced Google Features**: Extend `GoogleSheetsClient` with additional functionality
 
-## Security Considerations
+## Cost Comparison
 
-- Store sensitive credentials in environment variables or secure vault
-- Use IAM roles instead of access keys when running on AWS EC2
-- Implement IP whitelisting for database access
-- Regularly rotate Power BI client secrets
-- Monitor API usage and implement rate limiting
+| Feature | Google Looker Studio | Power BI |
+|---------|---------------------|----------|
+| **Cost** | ✅ Free | ❌ $10-20/user/month |
+| **Data Storage** | ✅ Your Google Drive | ❌ Microsoft Cloud |
+| **Sharing** | ✅ Free unlimited | ❌ Paid licensing required |
+| **Security** | ✅ You control access | ❌ Microsoft controls |
+| **Vendor Lock-in** | ✅ None (standard formats) | ❌ Proprietary format |
 
 ## Support
 
@@ -288,8 +358,8 @@ For questions or issues:
 
 1. Check the troubleshooting section above
 2. Review application logs for detailed error messages
-3. Verify all configuration settings
-4. Test individual components (database, Power BI) separately
+3. Test individual components (database, Google Sheets) separately
+4. Verify all configuration settings
 
 ## License
 

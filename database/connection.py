@@ -6,8 +6,14 @@ from typing import Dict, Any, Optional, List
 import pandas as pd
 from sqlalchemy import create_engine, text, Engine
 from sqlalchemy.exc import SQLAlchemyError
-import boto3
-from botocore.exceptions import BotoCoreError, ClientError
+
+# Optional AWS imports
+try:
+    import boto3
+    from botocore.exceptions import BotoCoreError, ClientError
+    HAS_AWS = True
+except ImportError:
+    HAS_AWS = False
 
 from config import DatabaseConfig, AWSConfig
 
@@ -17,13 +23,13 @@ logger = logging.getLogger(__name__)
 class DatabaseConnection:
     """Manages database connections and data retrieval from AWS databases."""
     
-    def __init__(self, db_config: DatabaseConfig, aws_config: AWSConfig):
+    def __init__(self, db_config: DatabaseConfig, aws_config: Optional[AWSConfig] = None):
         """
         Initialize database connection.
         
         Args:
             db_config: Database configuration
-            aws_config: AWS configuration
+            aws_config: AWS configuration (optional)
         """
         self.db_config = db_config
         self.aws_config = aws_config
