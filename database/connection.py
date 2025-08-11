@@ -70,7 +70,7 @@ class DatabaseConnection:
             # Build the base query using the correct table name
             query = """
                 SELECT 
-                    u.id,
+                    u.id as user_id,
                     u.email,
                     u.first_name,
                     u.last_name,

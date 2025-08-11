@@ -256,7 +256,11 @@ class InteractiveDashboardSelector:
             return None
         
         # Try to find user by ID
-        matching_users = users[users['user_id'] == user_id]
+        try:
+            user_id_val = int(user_id)
+        except ValueError:
+            user_id_val = user_id
+        matching_users = users[users['user_id'] == user_id_val]
         
         if matching_users.empty:
             print(f"\n❌ No user found with ID: {user_id}")

@@ -259,7 +259,7 @@ class StreamlitDashboardGenerator:
         
         if user_id:
             # Try to find user by ID
-            matching_users = users[users['id'] == user_id]
+            matching_users = users[users.get('user_id', users.get('id')) == user_id]
             
             if matching_users.empty:
                 st.warning(f"No user found with ID: {user_id}")
@@ -477,7 +477,7 @@ class StreamlitDashboardGenerator:
         if dashboard_type == "AKALA User Dashboard" and selected_user:
             user_name = f"{selected_user.get('first_name', 'Unknown')} {selected_user.get('last_name', 'Unknown')}"
             st.header(f"👤 {user_name} - AKALA User Dashboard")
-            st.markdown(f"**User ID:** {selected_user.get('id', 'N/A')} | **Email:** {selected_user.get('email', 'N/A')}")
+            st.markdown(f"**User ID:** {selected_user.get('user_id', selected_user.get('id', 'N/A'))} | **Email:** {selected_user.get('email', 'N/A')}")
         elif dashboard_type == "AKALA Student Dashboard" and selected_student:
             student_name = selected_student.get('student', 'Unknown')
             st.header(f"🎓 {student_name} - AKALA Student Dashboard")
@@ -490,7 +490,8 @@ class StreamlitDashboardGenerator:
         # Get data based on dashboard type
         if dashboard_type == "AKALA User Dashboard" and selected_user:
             # Individual user dashboard
-            user_data = self.db_connection.get_user_with_analytics(selected_user.get('id'))
+            selected_user_id = selected_user.get('user_id', selected_user.get('id'))
+            user_data = self.db_connection.get_user_with_analytics(selected_user_id)
             is_individual = True
         elif dashboard_type == "AKALA Student Dashboard" and selected_student:
             # Individual student dashboard
@@ -580,7 +581,7 @@ class StreamlitDashboardGenerator:
             col1, col2 = st.columns(2)
             
             with col1:
-                st.write(f"**User ID:** {user.get('id', 'N/A')}")
+                st.write(f"**User ID:** {user.get('user_id', user.get('id', 'N/A'))}")
                 st.write(f"**Email:** {user.get('email', 'N/A')}")
                 # Fix Series truth value error by using explicit Python logic
                 if 'is_admin' in user_data.columns:
@@ -941,7 +942,8 @@ class StreamlitDashboardGenerator:
                 user_name = f"{user.get('first_name', 'Unknown')}_{user.get('last_name', 'Unknown')}"
                 
                 # Get user data for export
-                user_data = self.db_connection.get_user_with_analytics(user.get('id'))
+                export_user_id = user.get('user_id', user.get('id'))
+                user_data = self.db_connection.get_user_with_analytics(export_user_id)
                 if not user_data.empty:
                     csv_data = user_data.to_csv(index=False)
                     st.download_button(
