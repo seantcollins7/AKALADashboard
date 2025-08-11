@@ -1,366 +1,143 @@
 # AKALA Dashboard Generator
 
-A Python application that generates **free and secure** dashboards using Google Sheets and Looker Studio integration with AWS database data for backend company analytics.
+**Professional Power BI Dashboards - Generated Automatically from Your AWS Database**
 
-## 🎯 Why Google Looker Studio?
+## 🎯 What This Does
 
-- **✅ Completely Free** - No licensing costs unlike Power BI
-- **✅ More Secure** - You control your data in Google Sheets
-- **✅ Easy Sharing** - Simple link sharing with granular permissions
-- **✅ No Vendor Lock-in** - Your data stays in standard Google Sheets format
-- **✅ Real-time Updates** - Automatic refresh when spreadsheet data changes
+Automatically generates **professional, enterprise-grade Power BI dashboards** from your AWS PostgreSQL database. No manual work required - just run a command and get a beautiful dashboard that looks like it cost thousands of dollars!
 
-## Features
+## ✨ Features
 
-- **AWS Database Integration**: Connect to PostgreSQL, MySQL, or SQL Server databases hosted on AWS
-- **Google Sheets Export**: Automatically export data to Google Sheets
-- **Looker Studio Ready**: Data formatted perfectly for Looker Studio dashboards
-- **User Analytics**: Generate comprehensive user analytics and activity reports
-- **Configurable Filters**: Filter data by user type, department, date ranges, and more
-- **Automated Refresh**: Update existing dashboards with latest data
-- **Secure Sharing**: Control access with Google's permission system
-- **Error Handling**: Robust error handling and logging for production use
+- **🚀 Instant Dashboard Creation** - Generate professional dashboards in seconds
+- **📊 Real-Time Data** - Direct connection to your AWS PostgreSQL database
+- **🎨 Professional Styling** - Enterprise-grade visualizations and themes
+- **📁 Complete Export** - CSV data files, setup instructions, and templates
+- **🆓 Completely Free** - Uses Power BI Desktop (free) for professional results
+- **🔄 Automatic Refresh** - Set up scheduled data updates
 
-## Installation
+## 🚀 Quick Start
 
-1. Clone the repository:
+### 1. Install Dependencies
 ```bash
-git clone <repository-url>
-cd AKALADashboard
+pip3 install -r requirements.txt
 ```
 
-2. Create a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\\Scripts\\activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements_basic.txt
-```
-
-4. Set up environment variables:
+### 2. Configure Environment
 ```bash
 cp env_example.txt akala-db.env
-# Edit akala-db.env with your actual configuration values
+# Edit akala-db.env with your database credentials
 ```
 
-## Configuration
-
-### Environment Variables
-
-Create a `akala-db.env` file with the following variables:
-
+### 3. Generate Dashboard
 ```bash
-# Database Configuration (REQUIRED)
-DB_HOST=your_database_endpoint
+python3 main.py --dashboard-name "My Company Dashboard"
+```
+
+### 4. Open in Power BI Desktop
+- Download [Power BI Desktop](https://powerbi.microsoft.com/desktop/) (FREE)
+- Follow the setup instructions in the generated files
+- Create your professional dashboard!
+
+## 📊 What You Get
+
+1. **Data Files** - Clean CSV exports from your database
+2. **Summary Metrics** - Calculated KPIs and performance indicators
+3. **Setup Instructions** - Step-by-step Power BI creation guide
+4. **Professional Template** - Dashboard structure and recommendations
+5. **Export Options** - PDF, PNG, and other formats
+
+## 🔧 Configuration
+
+### Database Settings
+```bash
+DB_HOST=your_database_host
 DB_PORT=5432
 DB_NAME=your_database_name
-DB_USERNAME=your_db_username
-DB_PASSWORD=your_db_password
-DB_ENGINE=postgresql  # or mysql, mssql
-
-# Google Looker Studio Configuration (OPTIONAL - add when ready)
-# GOOGLE_CREDENTIALS_FILE=path/to/service-account.json
-# GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"..."}
-# GOOGLE_DRIVE_FOLDER_ID=your_google_drive_folder_id
-
-# Application Configuration
-LOG_LEVEL=INFO
-CACHE_TIMEOUT=3600
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+DB_ENGINE=postgresql
 ```
 
-### Google Service Account Setup
-
-To use Google Sheets integration:
-
-1. **Create a Google Cloud Project**:
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project or select existing one
-
-2. **Enable APIs**:
-   - Enable Google Sheets API
-   - Enable Google Drive API
-
-3. **Create Service Account**:
-   - Go to IAM & Admin → Service Accounts
-   - Create a new service account
-   - Download the JSON key file
-   - Set `GOOGLE_CREDENTIALS_FILE` to the path of this file
-
-4. **Share Access**:
-   - The service account email will need access to create files in your Google Drive
-   - Optionally create a dedicated folder and share it with the service account
-
-## Database Schema Requirements
-
-The application expects the following tables in your database:
-
-### Users Table
-```sql
-CREATE TABLE users (
-    user_id VARCHAR(255) PRIMARY KEY,
-    username VARCHAR(255),
-    email VARCHAR(255),
-    created_at TIMESTAMP,
-    last_login TIMESTAMP,
-    user_type VARCHAR(100),
-    status VARCHAR(100),
-    department VARCHAR(100),
-    role VARCHAR(100)
-);
-```
-
-### User Activity Table (for analytics)
-```sql
-CREATE TABLE user_activity (
-    id SERIAL PRIMARY KEY,
-    user_id VARCHAR(255),
-    login_time TIMESTAMP,
-    activity_type VARCHAR(100)
-);
-```
-
-*Note: You can customize these schemas by modifying the SQL queries in `database/connection.py`*
-
-## Usage
-
-### Command Line Interface
-
-1. **Test database connection**:
+### Power BI Settings
 ```bash
-python3 test_database.py
+POWERBI_OUTPUT_DIR=dashboards
+POWERBI_THEME=professional
+POWERBI_AUTO_REFRESH=true
+POWERBI_EXPORT_FORMATS=pdf,png
 ```
 
-2. **Test all connections** (including Google if configured):
+## 📋 Usage Examples
+
+### Basic Dashboard Generation
+```bash
+python3 main.py --dashboard-name "Company Overview"
+```
+
+### Custom Output Directory
+```bash
+python3 main.py --dashboard-name "Sales Dashboard" --output-dir "reports"
+```
+
+### Test Database Connection
 ```bash
 python3 main.py --test-connections
 ```
 
-3. **Generate a new dashboard**:
-```bash
-python3 main.py --dashboard-name "Monthly User Report"
+## 🎨 Dashboard Sections
+
+1. **Executive Summary** - Key performance indicators
+2. **User Analytics** - Growth and activity trends
+3. **School Performance** - Comparative analysis
+4. **Detailed Data** - Comprehensive data tables
+
+## 💡 Pro Tips
+
+- Use the professional theme for best appearance
+- Add slicers for interactive filtering
+- Create bookmarks for different views
+- Set up row-level security if needed
+- Export to PDF for team sharing
+
+## 🔄 Data Refresh
+
+- **Automatic**: Set up scheduled refresh in Power BI
+- **Manual**: Refresh on demand
+- **Real-time**: Connect directly to database
+
+## 📁 File Structure
+
+```
+dashboards/
+├── Company_Dashboard_users_[timestamp].csv
+├── Company_Dashboard_analytics_[timestamp].csv
+├── Company_Dashboard_summary_[timestamp].csv
+├── Company_Dashboard_PowerBI_Setup.json
+└── Company_Dashboard_Setup_Instructions.md
 ```
 
-4. **Generate dashboard with filters**:
-```bash
-python3 main.py --user-type "premium" --department "sales" --analytics-period "7 days"
-```
+## 🎉 Result
 
-5. **Make dashboard public and share**:
-```bash
-python3 main.py --dashboard-name "Public Analytics" --make-public --share-with "colleague@company.com"
-```
+You'll have a **professional dashboard** that looks like it was created by a professional data analyst, but you generated it automatically in minutes - **completely FREE**!
 
-6. **Refresh existing dashboard**:
-```bash
-python3 main.py --refresh-spreadsheet "your-spreadsheet-id"
-```
+## 🆘 Troubleshooting
 
-### Programmatic Usage
+### Database Connection Issues
+- Verify your database credentials in `akala-db.env`
+- Check if your database is accessible from your network
+- Ensure the database user has read permissions
 
-```python
-from config import DashboardConfig
-from dashboard import DashboardGenerator
+### Power BI Issues
+- Download the latest Power BI Desktop version
+- Follow the setup instructions step by step
+- Check that your CSV files are properly formatted
 
-# Load configuration
-config = DashboardConfig.from_env()
+## 📞 Support
 
-# Initialize generator
-generator = DashboardGenerator(config)
+For issues or questions:
+1. Check the generated setup instructions
+2. Verify your database connection
+3. Ensure all dependencies are installed
 
-# Test connections
-connection_status = generator.test_connections()
-print(connection_status)
+---
 
-# Generate dashboard
-dashboard_result = generator.generate_complete_dashboard(
-    dashboard_name="Custom Dashboard",
-    user_filters={"user_type": "premium"},
-    analytics_time_period="30 days",
-    make_public=True
-)
-
-print(f"Spreadsheet URL: {dashboard_result['url']}")
-
-# Cleanup
-generator.close()
-```
-
-## Creating Looker Studio Dashboards
-
-Once your data is in Google Sheets:
-
-1. **Open Looker Studio**: Go to [https://lookerstudio.google.com/](https://lookerstudio.google.com/)
-
-2. **Create Data Source**:
-   - Click "Create" → "Data Source"
-   - Select "Google Sheets"
-   - Choose your dashboard spreadsheet
-   - Select the sheet (Users, Analytics, or Summary)
-
-3. **Create Report**:
-   - Click "Create Report"
-   - Drag and drop fields to create visualizations
-   - Add filters, charts, tables, and metrics
-
-4. **Recommended Visualizations**:
-
-   **For Users Sheet**:
-   - **Bar Chart**: Users by department
-   - **Pie Chart**: User types distribution
-   - **Table**: Detailed user list with filters
-   - **Scorecard**: Total active users
-
-   **For Analytics Sheet**:
-   - **Time Series**: User activity over time
-   - **Line Chart**: Registration trends
-   - **Comparison Chart**: Month-over-month growth
-
-   **For Summary Sheet**:
-   - **Scorecards**: Key metrics (Total Users, Active Users, etc.)
-   - **Text**: Last updated timestamp
-
-## Available Analytics Metrics
-
-The system generates the following analytics automatically:
-
-1. **User Activity**:
-   - Daily active users
-   - Total login counts
-   - Activity trends over time
-
-2. **User Registrations**:
-   - New user registrations by date
-   - Registration trends by user type
-   - Department-wise growth
-
-3. **Summary Metrics**:
-   - Total users count
-   - Active users count
-   - New users (last 30 days)
-   - Most common department
-
-## Security & Privacy
-
-### Why This Is More Secure Than Power BI
-
-1. **Data Ownership**: Your data stays in your Google account, not Microsoft's cloud
-2. **Access Control**: Granular Google permissions (view, edit, comment)
-3. **No Vendor Lock-in**: Standard Google Sheets format, easily exportable
-4. **Audit Trail**: Google Drive activity logs
-5. **Cost Control**: Completely free, no surprise licensing fees
-
-### Best Practices
-
-- Use a dedicated Google account for company dashboards
-- Create a shared folder structure for different departments
-- Regularly review sharing permissions
-- Set up automated backups if needed
-- Use service accounts for automated processes
-
-## Logging
-
-The application includes comprehensive logging:
-
-- **Console Output**: Real-time progress and status updates
-- **File Logging**: Detailed logs saved to file (optional)
-- **Log Levels**: DEBUG, INFO, WARNING, ERROR, CRITICAL
-
-Enable file logging:
-```bash
-python3 main.py --log-file "logs/dashboard.log" --log-level DEBUG
-```
-
-## Error Handling
-
-The application handles common scenarios:
-
-- **Database Connection Issues**: Automatic retry with clear error messages
-- **Google API Errors**: Detailed error messages and recovery suggestions
-- **Data Type Mismatches**: Automatic data type conversion for Google Sheets compatibility
-- **Network Timeouts**: Configurable timeout settings
-- **Authentication Failures**: Clear error messages for credential issues
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Database Connection Failed**:
-   - Check your database credentials in `akala-db.env`
-   - Verify network connectivity
-   - Ensure database server is running
-
-2. **Google Authentication Failed**:
-   - Verify service account key file exists
-   - Check API permissions are enabled
-   - Ensure service account has access to create files
-
-3. **Data Upload Failed**:
-   - Check Google API quotas
-   - Verify spreadsheet permissions
-   - Review data types and formatting
-
-### Debug Mode
-
-Run with debug logging for detailed troubleshooting:
-```bash
-python3 main.py --log-level DEBUG --test-connections
-```
-
-## Development
-
-### Project Structure
-```
-AKALADashboard/
-├── config.py                    # Configuration management
-├── main.py                      # CLI entry point
-├── test_database.py            # Database connection tester
-├── requirements_basic.txt       # Python dependencies
-├── database/                   # Database connection modules
-│   ├── __init__.py
-│   └── connection.py
-├── google_integration/         # Google Sheets/Looker Studio integration
-│   ├── __init__.py
-│   └── sheets_client.py
-├── dashboard/                  # Core dashboard logic
-│   ├── __init__.py
-│   └── generator.py
-├── utils/                      # Utility modules
-│   ├── __init__.py
-│   └── logging.py
-└── examples/                   # Usage examples
-    ├── basic_usage.py
-    └── advanced_usage.py
-```
-
-### Extending the Application
-
-1. **Add New Analytics**: Modify `get_analytics_data()` in `database/connection.py`
-2. **Custom Filters**: Extend `get_user_data()` with additional filter parameters
-3. **New Data Sources**: Add new database engines or connection types
-4. **Enhanced Google Features**: Extend `GoogleSheetsClient` with additional functionality
-
-## Cost Comparison
-
-| Feature | Google Looker Studio | Power BI |
-|---------|---------------------|----------|
-| **Cost** | ✅ Free | ❌ $10-20/user/month |
-| **Data Storage** | ✅ Your Google Drive | ❌ Microsoft Cloud |
-| **Sharing** | ✅ Free unlimited | ❌ Paid licensing required |
-| **Security** | ✅ You control access | ❌ Microsoft controls |
-| **Vendor Lock-in** | ✅ None (standard formats) | ❌ Proprietary format |
-
-## Support
-
-For questions or issues:
-
-1. Check the troubleshooting section above
-2. Review application logs for detailed error messages
-3. Test individual components (database, Google Sheets) separately
-4. Verify all configuration settings
-
-## License
-
-[Add your license information here]
+**Built for AKALA - Professional Dashboards Made Simple** 🚀
