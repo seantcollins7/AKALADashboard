@@ -41,8 +41,10 @@ def setup_logging(log_level: str = "INFO", log_file: Optional[str] = None) -> No
     
     # File handler (if specified)
     if log_file:
-        # Create log directory if it doesn't exist
-        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        # Create log directory only if a directory component exists
+        log_dir = os.path.dirname(log_file)
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
         
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(numeric_level)

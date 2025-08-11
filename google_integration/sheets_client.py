@@ -5,7 +5,11 @@ import logging
 import json
 import os
 from typing import Dict, Any, List, Optional, Union
-import pandas as pd
+try:
+    import pandas as pd  # type: ignore
+    HAS_PANDAS = True
+except Exception:
+    HAS_PANDAS = False
 from datetime import datetime
 
 # Optional Google imports
@@ -158,7 +162,7 @@ class GoogleSheetsClient:
             logger.warning(f"Failed to move file to folder: {e}")
     
     def write_dataframe_to_sheet(self, spreadsheet_id: str, sheet_name: str, 
-                                df: pd.DataFrame, clear_existing: bool = True) -> None:
+                                df: 'pd.DataFrame', clear_existing: bool = True) -> None:
         """
         Write pandas DataFrame to Google Sheets.
         
@@ -168,6 +172,8 @@ class GoogleSheetsClient:
             df: DataFrame to write
             clear_existing: Whether to clear existing data
         """
+        if not HAS_PANDAS:
+            raise ImportError("pandas is required to write dataframes to Google Sheets.")
         try:
             # Ensure sheet exists
             self._ensure_sheet_exists(spreadsheet_id, sheet_name)
@@ -185,8 +191,11 @@ class GoogleSheetsClient:
                 for i, cell in enumerate(row):
                     if pd.isna(cell):
                         row[i] = ''
-                    elif isinstance(cell, (pd.Timestamp, datetime)):
-                        row[i] = cell.strftime('%Y-%m-%d %H:%M:%S')
+                    elif hasattr(cell, 'strftime'):
+                        try:
+                            row[i] = cell.strftime('%Y-%m-%d %H:%M:%S')
+                        except Exception:
+                            row[i] = str(cell)
                     else:
                         row[i] = str(cell)
             
@@ -384,7 +393,7 @@ class GoogleSheetsClient:
             raise
 
 
-def prepare_dataframe_for_looker_studio(df: pd.DataFrame) -> pd.DataFrame:
+def prepare_dataframe_for_looker_studio(df: 'pd.DataFrame') -> 'pd.DataFrame':
     """
     Prepare DataFrame for optimal Looker Studio integration.
     
@@ -394,6 +403,8 @@ def prepare_dataframe_for_looker_studio(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         Processed DataFrame
     """
+    if not HAS_PANDAS:
+        raise ImportError("pandas is required to prepare dataframes for Looker Studio.")
     df_clean = df.copy()
     
     # Handle datetime columns - convert to strings in ISO format

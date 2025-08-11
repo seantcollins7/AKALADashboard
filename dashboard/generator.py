@@ -3,7 +3,11 @@ Core dashboard generator that orchestrates data retrieval and Google Sheets/Look
 """
 import logging
 from typing import Dict, Any, List, Optional, Union
-import pandas as pd
+try:
+    import pandas as pd  # type: ignore
+    HAS_PANDAS = True
+except Exception:
+    HAS_PANDAS = False
 from datetime import datetime, timedelta
 
 from config import DashboardConfig
@@ -97,13 +101,15 @@ class DashboardGenerator:
         """
         if not self.google_client:
             raise Exception("Google Sheets client not configured")
+        if not HAS_PANDAS:
+            raise ImportError("pandas is required to process and upload dataframes to Google Sheets.")
             
         try:
             # Retrieve user data from database
             logger.info("Retrieving user data from database...")
             user_data = self.db_connection.get_user_data(user_filters)
             
-            if user_data.empty:
+            if getattr(user_data, "empty", False):
                 logger.warning("No user data found with provided filters")
                 return
             
@@ -136,6 +142,8 @@ class DashboardGenerator:
         """
         if not self.google_client:
             raise Exception("Google Sheets client not configured")
+        if not HAS_PANDAS:
+            raise ImportError("pandas is required to process and upload dataframes to Google Sheets.")
             
         try:
             all_analytics_data = []
@@ -145,7 +153,7 @@ class DashboardGenerator:
                 logger.info(f"Retrieving {metric_type} analytics data...")
                 metric_data = self.db_connection.get_analytics_data(metric_type, time_period)
                 
-                if not metric_data.empty:
+                if not getattr(metric_data, "empty", True):
                     # Add metric type column
                     metric_data["metric_type"] = metric_type
                     
@@ -194,6 +202,8 @@ class DashboardGenerator:
         """
         if not self.google_client:
             raise Exception("Google Sheets client not configured")
+        if not HAS_PANDAS:
+            raise ImportError("pandas is required to process and upload dataframes to Google Sheets.")
             
         try:
             # Get summary data from database

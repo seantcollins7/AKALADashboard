@@ -3,9 +3,28 @@ Database connection and data retrieval module for AWS databases.
 """
 import logging
 from typing import Dict, Any, Optional, List
-import pandas as pd
-from sqlalchemy import create_engine, text, Engine
-from sqlalchemy.exc import SQLAlchemyError
+
+# Optional heavy deps
+try:
+    import pandas as pd  # type: ignore
+    HAS_PANDAS = True
+except Exception:
+    HAS_PANDAS = False
+    pd = None  # type: ignore
+
+try:
+    from sqlalchemy import create_engine, text, Engine  # type: ignore
+    from sqlalchemy.exc import SQLAlchemyError  # type: ignore
+    HAS_SQLALCHEMY = True
+except Exception:
+    HAS_SQLALCHEMY = False
+    Engine = object  # type: ignore
+    def create_engine(*args, **kwargs):  # type: ignore
+        raise ImportError("SQLAlchemy is not installed")
+    def text(sql: str):  # type: ignore
+        return sql
+    class SQLAlchemyError(Exception):  # type: ignore
+        pass
 
 # Optional AWS imports
 try:
@@ -60,6 +79,8 @@ class DatabaseConnection:
         Returns:
             SQLAlchemy engine instance
         """
+        if not HAS_SQLALCHEMY:
+            raise ImportError("SQLAlchemy is required for database connections. Please install it or use requirements_basic.txt.")
         if self._engine is None:
             try:
                 connection_string = self._get_connection_string()
@@ -86,15 +107,18 @@ class DatabaseConnection:
         """
         try:
             engine = self.get_engine()
-            with engine.connect() as conn:
+            with engine.connect() as conn:  # type: ignore[attr-defined]
                 conn.execute(text("SELECT 1"))
             logger.info("Database connection test successful")
             return True
         except SQLAlchemyError as e:
             logger.error(f"Database connection test failed: {e}")
             return False
+        except Exception as e:
+            logger.error(f"Database connection test failed: {e}")
+            return False
     
-    def execute_query(self, query: str, params: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
+    def execute_query(self, query: str, params: Optional[Dict[str, Any]] = None):
         """
         Execute SQL query and return results as DataFrame.
         
@@ -105,17 +129,19 @@ class DatabaseConnection:
         Returns:
             Query results as pandas DataFrame
         """
+        if not HAS_PANDAS:
+            raise ImportError("pandas is required to return DataFrames. Install pandas or adapt code to consume raw results.")
         try:
             engine = self.get_engine()
-            with engine.connect() as conn:
-                df = pd.read_sql(text(query), conn, params=params or {})
+            with engine.connect() as conn:  # type: ignore[attr-defined]
+                df = pd.read_sql(text(query), conn, params=params or {})  # type: ignore[arg-type]
             logger.info(f"Query executed successfully, returned {len(df)} rows")
             return df
         except SQLAlchemyError as e:
             logger.error(f"Query execution failed: {e}")
             raise
     
-    def get_user_data(self, user_filters: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
+    def get_user_data(self, user_filters: Optional[Dict[str, Any]] = None):
         """
         Retrieve user data from database with optional filters.
         
@@ -168,7 +194,7 @@ class DatabaseConnection:
         
         return self.execute_query(query, params)
     
-    def get_analytics_data(self, metric_type: str, time_period: Optional[str] = None) -> pd.DataFrame:
+    def get_analytics_data(self, metric_type: str, time_period: Optional[str] = None):
         """
         Retrieve analytics data for dashboard metrics.
         
@@ -246,7 +272,7 @@ class DatabaseConnection:
     
     def close(self):
         """Close database connection."""
-        if self._engine:
-            self._engine.dispose()
-            self._engine = None
-            logger.info("Database connection closed")
+        if self._engine and hasattr(self._engine, "dispose"):
+            self._engine.dispose()  # type: ignore[attr-defined]
+        self._engine = None
+        logger.info("Database connection closed")
