@@ -1,0 +1,19 @@
+# AKALA Dashboard Generator - Environment Variables
+# Copy this file to akala-db.env and fill in your actual values
+
+# Database Configuration
+DB_HOST=your_database_host
+DB_PORT=5432
+DB_NAME=your_database_name
+DB_USERNAME=your_database_username
+DB_PASSWORD=your_database_password
+DB_ENGINE=postgresql
+
+# Power BI Configuration (Optional)
+POWERBI_OUTPUT_DIR=dashboards
+POWERBI_THEME=professional
+POWERBI_AUTO_REFRESH=true
+POWERBI_EXPORT_FORMATS=pdf,png
+
+# Application Configuration
+LOG_LEVEL=INFO
